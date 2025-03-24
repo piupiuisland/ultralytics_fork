@@ -233,6 +233,11 @@ class BaseTrainer:
         # Model
         self.run_callbacks("on_pretrain_routine_start")
         ckpt = self.setup_model()
+
+        # update grad
+        for param in self.model.model.parameters():
+            param.requires_grad = True
+
         self.model = self.model.to(self.device)
         self.set_model_attributes()
 
@@ -341,6 +346,9 @@ class BaseTrainer:
         epoch = self.start_epoch
         self.optimizer.zero_grad()  # zero any resumed gradients to ensure stability on train start
         while True:
+
+            print("=========== beginning of epoch =============")
+            # print(self.model.model[-1])
             self.epoch = epoch
             self.run_callbacks("on_train_epoch_start")
             with warnings.catch_warnings():
@@ -579,20 +587,44 @@ class BaseTrainer:
             self.data["nc"] = 1
         return data["train"], data.get("val") or data.get("test")
 
+    # def setup_model(self):
+    #     """Load/create/download model for any task."""
+    #     print("===== at setup_model =====")
+    #     print("===== self.args.pretrained: ", self.args.pretrained)
+    #     if isinstance(self.model, torch.nn.Module):  # if model is loaded beforehand. No setup needed
+    #         return
+    #     cfg, weights = self.model, None
+    #     ckpt = None
+    #     if str(self.model).endswith(".pt"):
+    #         print("===== load model here =====")
+    #         weights, ckpt = attempt_load_one_weight(self.model)
+    #         cfg = weights.yaml
+    #     elif isinstance(self.args.pretrained, (str, Path)):
+    #         weights, _ = attempt_load_one_weight(self.args.pretrained)
+    #     self.model = self.get_model(cfg=cfg, weights=weights, verbose=RANK == -1)  # calls Model(cfg, weights)
+    #     return ckpt
+
     def setup_model(self):
         """Load/create/download model for any task."""
-        if isinstance(self.model, torch.nn.Module):  # if model is loaded beforehand. No setup needed
+
+        if isinstance(self.model, torch.nn.Module):
             return
 
-        cfg, weights = self.model, None
-        ckpt = None
+        # if str(self.model).endswith(".pt"):
+        #     ckpt = torch.load(self.model)
+        #     cfg = ckpt['train_args']
+        # print("===== self.model[-1] 0", self.model.model[-1])
         if str(self.model).endswith(".pt"):
+            print("===== load model here =====")
             weights, ckpt = attempt_load_one_weight(self.model)
             cfg = weights.yaml
+            # print("===== self.model[-1] 1", self.model.model[-1])
+
         elif isinstance(self.args.pretrained, (str, Path)):
             weights, _ = attempt_load_one_weight(self.args.pretrained)
-        self.model = self.get_model(cfg=cfg, weights=weights, verbose=RANK == -1)  # calls Model(cfg, weights)
+        self.model = self.get_model(cfg=cfg, weights=weights, verbose=RANK == -1)
         return ckpt
+
 
     def optimizer_step(self):
         """Perform a single step of the training optimizer with gradient clipping and EMA update."""

@@ -90,6 +90,10 @@ class DetectionTrainer(BaseTrainer):
             model.load(weights)
         return model
 
+    def get_model(self, cfg=None, weights=None, verbose=True):
+        assert weights is not None, "pruned model must have pretrained weight"
+        return weights
+
     def get_validator(self):
         """Returns a DetectionValidator for YOLO model validation."""
         self.loss_names = "box_loss", "cls_loss", "dfl_loss"
